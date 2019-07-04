@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>SmartNetConf</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/normalize.css')}}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/font-awesome.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/font-awesome.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+	<script src="{{ url_for('static', filename='js/jquery-3.1.1.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/bootbox.js') }}"></script>
+
+	<script src="{{ url_for('static', filename='js/jquery-fileupload.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/split.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/convert.js') }}"></script>
+
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap-dialog.min.css') }}">
+	<script src="{{ url_for('static', filename='js/bootstrap-dialog.min.js') }}"></script>
+
+	<script src="{{ url_for('static', filename='js/vue.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/ace-builds-master/src/ace.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/ace-builds-master/src/theme-vibrant_ink.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ace-mode-python.js') }}"></script>
+<div id="myModal" class="modal" style="z-index: 50000000000000000000000000;">
+                                            <!-- Modal content -->
+                                            <div class="modal-content">
+                                                <span class="close">&times;</span>
+                                                <p>SmartNetConf is a simple (Web Gui Application) that let you generate a configuration from a (JINJA2 Template and CSV File)
+						<p>Visit us on : <a href="https://github.com/ShellVision/SmartNetConf">https://github.com/ShellVision/SmartNetConf</a></p>
+						<p>Secure Live Version is available at <a href="https://smartnetconf.shellvision.com">https://smartnetconf.shellvision.com</a> *** NO DATA WILL BE SAVED ***</p>
+
+						<a href="https://github.com/ShellVision/SmartNetConf"><IMG SRC="https://github.com/ShellVision/SmartNetConf/raw/master/HowTO_SmartNetConf.gif" width="600" height="400" align="middle"></a>
+                                            </div>
+                                        </div>
+</head>
+
+<body>
+    {% if flag == 1 %}
+        <script>
+            $(document).ready(function () {
+
+                document.getElementById("myModal").style.display = "block";
+            });
+        </script>
+    {% endif %}
+    {% if flag == 0 %}
+        <script>
+            $(document).ready(function () {
+                document.getElementById("myModal").style.display = "hidden";
+
+            });
+        </script>
+    {% endif %}
+	<div id="viewport" style="height: 100%; width: 100%;">
+		<nav class="navbar navbar-default navbar-static-top" style="display: none;">
+			<div class="container-fluid">
+				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+					<ul class="nav navbar-nav navbar-right">
+						<li><a href="#">Link</a></li>
+						<li class="dropdown">
+						</li>
+					</ul>
+				</div>
+				<!-- /.navbar-collapse -->
+			</div>
+			<!-- /.container-fluid -->
+		</nav>
+		<!--<div style="height: calc(100% - 48px);">-->
+		<div style="height: calc(100% - 2px);">
+			<div id="a" class="split split-vertical">
+				<div id="c" class="split split-horizontal content" style="position: relative;">
+					<nav class="navbar navbar-default navbar-static-top">
+						<div class="container-fluid">
+							<!-- Brand and toggle get grouped for better mobile display -->
+							<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+								<form class="navbar-form navbar-left">
+									<div class="form-group">
+										<label class="">Template</label>
+										<input type="text" class="form-control" placeholder="Template name" id="template-name" v-model="template.name" data-toggle="tooltip" data-placement="right" title="Set a Name for the Template to save it in the Database">
+									</div>
+								</form>
+								<ul class="nav navbar-nav navbar-right">
+									<li>
+                                        <button class="btn navbar-btn" id="myBtn">About</button>
+                                        
+                                    </li>
+                                    <li>
+										<button class="btn navbar-btn" id="download-template-button">
+                                    <i data-toggle="tooltip" data-placement="bottom" class="fa fa-download" aria-hidden="true" title="Download template as file"></i>
+                                </button>
+									</li>
+									<li>
+										<button class="btn navbar-btn" id="new-button">
+                                    New
+                                </button>
+									</li>
+									<li>
+										<button class="btn navbar-btn" id="save-button">
+                                    Save
+                                </button>
+									</li>
+									<li class="dropdown" id="open-button">
+										<button data-toggle="dropdown" class="btn navbar-btn dropdown-toggle">
+                                    Open
+                                    <span class="caret"></span>
+                                </button>
+										<ul class="dropdown-menu" id="open-list">
+											<li v-show="local.loading_templates_list">
+												<a href="#" class="spinner"><i class="fa fa-spinner fa-spin"></i> Loading...</a>
+
+											</li> 	
+
+											<li v-for="item in local.templates_list">
+												<a href="#" v-on:click="load_template( item.id )">
+                                            ${item.name}
+                                            <span class="pull-right" v-on:click="delete_template( item.id, $event )" data-toggle="tooltip" title="Delete template file">
+                                                <i class="fa fa-close"></i>
+                                            </span>
+                                        </a>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</div>
+							<!-- /.navbar-collapse -->
+						</div>
+						<!-- /.container-fluid -->
+					</nav>
+					<div class="panel-mask" v-bind:class="{ 'panel-mask-visible': local.loading_template }">
+						<span><i class="fa fa-spinner fa-spin"></i></span> Loading...
+					</div>
+					<div style="height: calc(100% - 51px); overflow-y: auto;">
+						<div id="template" style="height:100%"></div>
+					</div>
+				</div>
+				<div id="tags-panel" class="split split-horizontal content">
+					<nav class="navbar navbar-default navbar-static-top">
+						<div class="upload-overlay" v-bind:class="{ 'overlay-visible': tags.dragover }">
+							Drop To Upload
+						</div>
+						<div class="container-fluid">
+							<!-- Brand and toggle get grouped for better mobile display -->
+							<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                                <form action="/set_delimiter" method="post" onkeyup="this.submit();" style="margin-top: 2%;">
+                                    <div class="form-group">
+                                        <label style="float:left; margin-right:10px; margin-top: 7px;">Delimiter</label>
+                                        <input type="text" class="form-control" placeholder="',' is default" style="width: 30%;" name="set_delimiter" value="{{ delim }}" data-toggle="tooltip" data-placement="left" title="If you set the Delimiter manualy you NEED to upload the file AGAIN for the change to take effect">
+                                    </div>
+                                </form>
+								<form class="navbar-form navbar-left" action="upload" method="post" enctype="multipart/form-data" id="file_form" style="margin-top: -2%; margin-left: -3%;">
+									<div class="form-group" style="margin-left: 3vh;">
+										<label class="">Tags</label>
+										
+										<input v-model="tags_filter_text" type="text" class="form-control" placeholder="Search" style="width:100px;" id="search-field-tags" data-toggle="tooltip" data-placement="left" title="If you want to seach a specific TAG of the uploaded CSV file">
+
+
+										<span class='label label-info' id="upload-file-info"></span>
+									</div>
+								</form>
+							</div>
+							<!-- /.navbar-collapse -->
+						</div>
+						<!-- /.container-fluid -->
+					</nav>
+					<div style="height: calc(100% - 51px); overflow-y: auto;">
+						<div id="tags" style="height:100%">
+							<div class="panel panel-default tags-panel-item" v-for="file in files_filtered">
+								<div class="panel-heading">
+									<span v-show="file.is_loading" class="spinner"><i class="fa fa-spinner fa-spin"></i></span>
+									<span v-show="file.is_not_used" v-on:click="use_data_file( file.id )" data-toggle="tooltip" title="Use this data file to render current template">
+                                        <i class="fa fa-reply" v-if="!file.error"></i>
+                                    </span> 
+                                    <i class="fa fa-exclamation-triangle" v-if="file.error" style="color: red;" data-toggle="tooltip" v-bind:title="file.error"></i>                                    ${file.name}
+                                <span class="pull-right" v-on:click="close_data_file( file.id )" data-toggle="tooltip" data-placement="right" title="Close data file">
+                                <i class="fa fa-close"></i>
+                            </span>
+								</div>
+								<div class="panel-body">
+									<span style="margin: 4px;" v-on:dragstart="set_tag_drag_text( tag.name, $event )" v-bind:style="{ 'background-color': file.color, 'font-color': file.text_color }"
+										draggable=true class="btn btn-success" v-for="tag in file.tags" v-bind:data-name="tag.name" v-bind:id="tag.id" v-bind:title="tag.description"
+										data-toggle="tooltip" v-html="tag.text">
+                                    </span>
+								</div>
+							</div>
+
+						</div>
+					</div>
+				</div>
+			</div>
+			<div id="b" class="split split-vertical" style="position: relative; border: 1px solid #ccc;">
+				<nav class="navbar navbar-default navbar-static-top">
+					<div class="container-fluid">
+						<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+							<ul class="nav navbar-nav navbar-left">
+								<li><span class="navbar-text">Output of template <b>[${template.name}]</b> and datafile <b>[${data_file_name}]</b></span></li>
+							</ul>
+							<ul class="nav navbar-nav navbar-right" style="margin-right: 0px">
+								<li>
+									<button class="btn navbar-btn" id="download-output-button">
+                                        <i data-toggle="tooltip" data-placement="left" class="fa fa-download" aria-hidden="true" title="Download results as file"></i>
+                                    </button>
+                                    <button class="btn navbar-btn" id="download-output-button" v-on:click="toggle_results_download_mode">
+                                        <i v-show="download_as_archive" data-toggle="tooltip" data-placement="left" class="fa fa-file-archive-o" aria-hidden="true" title="Results will be downloaded as <br /> <b>archive</b>. <br /> Click to change to <br /> <b>single text file</b>"></i>
+                                        <i v-show="!download_as_archive" data-toggle="tooltip" data-placement="left" class="fa fa-file-text-o" aria-hidden="true" title="Results will be downloaded as <br /> <b>single text file</b>. <br /> Click to change to <br /><b>archive</b>"></i>
+                                    </button>
+								</li>
+							</ul>
+						</div>
+						<!-- /.navbar-collapse -->
+					</div>
+					<!-- /.container-fluid -->
+				</nav>
+				<div class="panel-mask" v-bind:class="{ 'panel-mask-visible': local.loading_output }">
+					<span><i class="fa fa-spinner fa-spin"></i></span> Loading...
+				</div>
+				<div style="height: calc(100% - 51px); overflow-y: auto; background: #000;">
+					<div id="render" class="panel-body" v-html="output" style="background: #000;color:#00FF00;"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+</body>
+<script type="text/javascript" src="{{ url_for('static', filename='js/modal.js') }}"></script>
+
+</html>
+

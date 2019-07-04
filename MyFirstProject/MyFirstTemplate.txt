@@ -1,0 +1,22 @@
+hostname {{HOSTNAME}}
+no aaa new-model
+!'THIS IS THE FIRST VRF'
+{%- if VRF_1 %}
+!This section refers to the forwarding table for VRF {{VRF_1}}:
+ip vrf {{VRF_1}}
+ rd {{RD_VRF_1}}
+ route-target export {{RT_VRF_1}}
+ route-target import {{RT_VRF_1}}
+{%- endif %}
+
+!'THIS IS THE SECOND VRF'
+{%- if VRF_2 %}
+!This section refers to the forwarding table for VRF {{VRF_2}}:
+ip vrf {{VRF_2}}
+ rd {{RD_VRF_2}}
+ route-target export {{RT_VRF_2}}
+ route-target import {{RT_VRF_2}}
+{%- endif %}
+
+!'Simple Check'
+show ip vrf
