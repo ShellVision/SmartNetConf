@@ -313,126 +313,147 @@ $(document).ready(function () {
         });
     });
 
-    // upload files, dropped on tags panel
-    function uploadFiles(files) {
-        return new Promise(function (res) {
-            var formData = new FormData();
-            state.local.files_uploading = [];
-            for (var i = 0; i < files.length; i++) {
-                formData.append('file', files[i]);
-                // find if file with the same name is already uploaded
-                var old = state.tags.files.filter(function (q) {
-                    return q.filename_human == files[i].name;
-                });
+    var isAdvancedUpload = function() {
+        var div = document.createElement('div');
+        return (('draggable' in div) || ('ondragstart' in div && 'ondrop' in div)) && 'FormData' in window && 'FileReader' in window;
+    }();
 
-                // if not, add it to files list to show upload process in UI
-                if (old.length == 0) {
-                    state.tags.files.unshift({
-                        filename_human: files[i].name,
-                        filename: "",
-                        tags: [],
-                        color: colors[(state.tags.files.length * colors_skip + 3) % colors.length]
+    var $form = $('.box');
+    var $input    = $form.find('input[type="file"]');
+
+    if (isAdvancedUpload) {
+        
+        $form.addClass('has-advanced-upload');
+
+        var droppedFiles = false;
+
+        $form.on('drag dragstart dragend dragover dragenter dragleave drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        })
+
+        .on('dragover dragenter', function() {
+            $form.addClass('is-dragover');
+        })
+
+        .on('dragleave dragend drop', function() {
+            $form.removeClass('is-dragover');
+        })
+
+        .on('drop', function(e) {
+            droppedFiles = e.originalEvent.dataTransfer.files;
+            $form.trigger('submit');
+        });
+
+        $input.on('change', function(e) { // when drag & drop is NOT supported
+            droppedFiles = e.target.files;
+            $form.trigger('submit');
+        });
+    
+        $form.on('submit', function(e) {
+
+            if ($form.hasClass('is-uploading')) return false;
+
+            $form.addClass('is-uploading').removeClass('is-error');
+
+            if (isAdvancedUpload) {
+                e.preventDefault();
+    
+                var ajaxData = new FormData();
+
+                state.local.files_uploading = [];
+
+                if (droppedFiles) {
+                    $.each( droppedFiles, function(i, file) {
+                        ajaxData.append( 'file', file );
+                        // find if file with the same name is already uploaded
+                        var old = state.tags.files.filter(function (q) {
+                            return q.filename_human == droppedFiles[i].name;
+                        });
+                        // if not, add it to files list to show upload process in UI
+                        if (old.length == 0) {
+                            state.tags.files.unshift({
+                                filename_human: droppedFiles[i].name,
+                                filename: "",
+                                tags: [],
+                                color: colors[(state.tags.files.length * colors_skip + 3) % colors.length]
+                            });
+                        } else {
+                        // else just clear tags list
+                            old[0].tags = [];
+                        }
+                        // update state to show spinners near loading files in UI
+                        state.local.files_uploading.push(droppedFiles[i].name);
                     });
-                } else {
-                // else just clear tags list
-                    old[0].tags = [];
                 }
-                // update state to show spinners near loading files in UI
-                state.local.files_uploading.push(files[i].name);
-            }
-
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', '/upload');
-            // clear loaing files list after finished
-            xhr.onload = function () {
-                var data = JSON.parse(xhr.responseText).data;
-                setTimeout(function () {
-                    state.local.files_uploading = [];
-                }, 250);
-                res(data);
-            };
-
-            xhr.send(formData);
-        });
-    }
-
-    // register event listeners to handle files upload
-    var dragover = false;
-    function registerDropTarget(ele) {
-        ele.addEventListener('dragover', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (e.dataTransfer.types[0] != "Files") {
-                return;
-            }
-            console.log(e, 'dragover');
-            state.tags.dragover = true;
-            dragover = true;
-        });
-
-        ele.addEventListener('dragleave', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (e.dataTransfer.types[0] != "Files") {
-                return;
-            }
-            console.log('dragleave');
-            dragover = false;
-            // sometimes dragleave events fire for no obvious reasons, followed by dragover immediately
-            // so don't hide panel if dragover was fired 
-            setTimeout(function () {
-                if (!dragover) {
-                    state.tags.dragover = false;
-                }
-            }, 50);
-        });
-
-        ele.addEventListener('drop', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (e.dataTransfer.types[0] != "Files") {
-                return;
-            }
-            console.log('drop', e.dataTransfer.files);
-            state.tags.dragover = false;
-            dragover = false;
-            setTimeout(function () {
-                if (!dragover) {
-                    state.tags.dragover = false;
-                }
-            }, 50);
-            var tpl = getCurrentTemplate();
-            // upload dropped files, then render tags for them
-            uploadFiles(e.dataTransfer.files).then(function (data) {
-                console.log(data);
-                data.forEach(function (file) {
-                    var old = state.tags.files.filter(function (q) {
-                        return q.filename_human == file.filename_human;
-                    })[0];
-                    if (old.filename == tpl.used_data_file){
-                        tpl.used_data_file = file.filename; 
+        
+                var tpl = getCurrentTemplate();
+                
+                $.ajax({
+                    url: $form.attr('action'),
+                    type: $form.attr('method'),
+                    data: ajaxData,
+                    dataType: 'json',
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    complete: function() {
+                        $form.removeClass('is-uploading');
+                        setTimeout(function () {
+                            state.local.files_uploading = [];
+                        }, 250);
+                    },
+                    success: function(data) {
+                        $form.addClass( data.success == true ? 'is-success' : 'is-error' );
+                        data.data.forEach(function (file) {
+                            var old = state.tags.files.filter(function (q) {
+                                return q.filename_human == file.filename_human;
+                            })[0];
+                            if (old.filename == tpl.used_data_file){
+                                tpl.used_data_file = file.filename; 
+                            }
+                            old.filename = file.filename;
+                            old.tags = file.tags;
+                            old.errors = file.errors;
+                        });
+                    
+                        // if no file is used for template currently, use the first dropped one
+                        if (!tpl.used_data_file) {
+                            tpl.used_data_file = state.tags.files[0].filename;
+                        }
+                        // show tooltips after Vue rendered html
+                        setTimeout(function () {
+                            $('[data-toggle="tooltip"]').tooltip({html: true, container: "body"});
+                        }, 250);
+                        state.tags_filter_text = "";
+                        processTemplate();
+                    },
+                    error: function() {
+                        // Log the error, show an alert, whatever works for you
+                        alert("file upload error!");
                     }
-                    old.filename = file.filename;
-                    old.tags = file.tags;
-                    old.errors = file.errors;
                 });
-                // if no file is used for template currently, use the first dropped one
-                if (!tpl.used_data_file) {
-                    tpl.used_data_file = state.tags.files[0].filename;
-                }
-                // show tooltips after Vue rendered html
-                setTimeout(function () {
-                    $('[data-toggle="tooltip"]').tooltip({html: true, container: "body"});
-                }, 250);
-                state.tags_filter_text = "";
-                processTemplate();
-            });
+            } else {
+                var iframeName  = 'uploadiframe' + new Date().getTime();
+                $iframe   = $('<iframe name="' + iframeName + '" style="display: none;"></iframe>');
+
+                $('body').append($iframe);
+                $form.attr('target', iframeName);
+
+                $iframe.one('load', function() {
+                    var data = JSON.parse($iframe.contents().find('body' ).text());
+                    $form
+                    .removeClass('is-uploading')
+                    .addClass(data.success == true ? 'is-success' : 'is-error')
+                    .removeAttr('target');
+                    if (!data.success) $errorMsg.text(data.error);
+                    $form.removeAttr('target');
+                    $iframe.remove();
+                });
+            }
         });
     }
-
-    registerDropTarget(window.document.querySelector("#tags-panel"));
-    registerDropTarget(window.document.querySelector(".upload-overlay"));
-
+    
     // save template button
     $("#save-button").on("click", function () {
         function saveTemplate(id, name, content) {
