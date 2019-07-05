@@ -17,10 +17,6 @@ Live apps is available at [http://smartnetconf.shellvision.com](http://smartnetc
     cd SmartNetConf
     apt -y install libapache2-mod-wsgi-py3
     a2enmod wsgi
-    virtualenv -p python3 ./venv3
-    source ./venv3/bin/activate
-    pip install Flask
-    pip install PyYAML
     chown www-data:www-data -R /var/www/SmartNetConf
 
 ### Edit Apache configuration file 
