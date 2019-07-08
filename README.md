@@ -13,7 +13,7 @@ Live apps is available at [http://smartnetconf.shellvision.com](http://smartnetc
 
     apt install apache2 virtualenv
     cd /var/www
-    git clone https://github.com/SmartNetConf/SmartNetConf.git
+    git clone https://github.com/ShellVision/SmartNetConf.git
     cd SmartNetConf
     apt -y install libapache2-mod-wsgi-py3
     a2enmod wsgi
