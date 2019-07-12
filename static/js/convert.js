@@ -164,7 +164,7 @@ $(document).ready(function () {
             load_template: function load_template(id) {
                 state.local.loading_template = true;
 
-                $.get('/get_template', {
+                $.get(prefix + '/get_template', {
                     id: id
                 }).done(function (resp) {
                     setTimeout(function () {
@@ -183,7 +183,7 @@ $(document).ready(function () {
                     buttons: [{
                         "label": "Delete",
                         "action": function action(dialog) {
-                            $.get('/delete_template', {
+                            $.get(prefix + '/delete_template', {
                                 id: id
                             }).done(function (resp) {
                                 dialog.close();
@@ -274,7 +274,7 @@ $(document).ready(function () {
         // empty current templates list
         state.local.templates_list = [];
         // load list from server
-        $.get('/get_templates', {}).done(function (response) {
+        $.get( prefix + '/get_templates', {}).done(function (response) {
             // set new list of templates
             state.local.templates_list = response.data;
             // hide "Loading..."
@@ -293,7 +293,7 @@ $(document).ready(function () {
 
     // Download button for results
     $("#download-output-button").on("click", function () {
-        $.post('/convert', {
+        $.post(prefix + '/convert', {
             template: getTemplateContent(),
             filename: getFileName(),
             download: true,
@@ -301,15 +301,15 @@ $(document).ready(function () {
             template_name: getTemplateName()
         }).done(function (response) {
             var ext = state.download_as_archive ? "zip" : "txt";
-            window.location = "/download_output?file_id=" + response + "&file_name=" + getTemplateName() + "_" + getFileName(true) + "_output." + ext + "&template_name=" + (getTemplateName() || "");
+            window.location = prefix + "/download_output?file_id=" + response + "&file_name=" + getTemplateName() + "_" + getFileName(true) + "_output." + ext + "&template_name=" + (getTemplateName() || "");
         });
     });
 
     $("#download-template-button").on("click", function () {
-        $.post('/echo_file', {
+        $.post(prefix + '/echo_file', {
             content: getTemplateContent()
         }).done(function (response) {
-            window.location = "/download_output?file_id=" + response + "&file_name=" + getTemplateName() + ".txt";
+            window.location = prefix + "/download_output?file_id=" + response + "&file_name=" + getTemplateName() + ".txt";
         });
     });
 
@@ -388,7 +388,11 @@ $(document).ready(function () {
                 }
         
                 var tpl = getCurrentTemplate();
-                
+                var action = $form.attr('action');
+                if (action.includes(prefix+prefix)){
+                    action.replace(prefix,'');
+                }
+
                 $.ajax({
                     url: $form.attr('action'),
                     type: $form.attr('method'),
@@ -409,6 +413,7 @@ $(document).ready(function () {
                             var old = state.tags.files.filter(function (q) {
                                 return q.filename_human == file.filename_human;
                             })[0];
+
                             if (old.filename == tpl.used_data_file){
                                 tpl.used_data_file = file.filename; 
                             }
@@ -457,7 +462,7 @@ $(document).ready(function () {
     // save template button
     $("#save-button").on("click", function () {
         function saveTemplate(id, name, content) {
-            return $.post('/save_template', {
+            return $.post(prefix + '/save_template', {
                 id: id,
                 name: name,
                 content: content
@@ -482,7 +487,7 @@ $(document).ready(function () {
         }
 
         // check if file was renamed
-        $.get('/check_template', {
+        $.get(prefix + '/check_template', {
             id: getTemplateId(),
             name: getTemplateName()
         }).done(function (response) {
@@ -583,6 +588,9 @@ $(document).ready(function () {
         processTemplate();
     }, 1500));
 
+
+
+
     // send data to server to render template and updates results
     function processTemplate() {
         if (!getFileName()) {
@@ -590,7 +598,7 @@ $(document).ready(function () {
             return;
         }
         state.local.loading_output = true;
-        $.post('/convert', {
+        $.post(prefix + '/convert', {
             template: getTemplateContent(),
             filename: getFileName(),
             template_name: getTemplateName()
@@ -602,6 +610,57 @@ $(document).ready(function () {
         });
     }
 
+    function get_human_filename(){
+        var filename = getFileName();
+        var old = state.tags.files.filter(function (q) {
+            return q.filename == filename;
+        })[0];
+        return old.filename_human;
+    }
+
+    function get_tags(){
+        human_filename = get_human_filename();
+
+        if (human_filename === undefined || getFileName() === "") return;
+
+        $.post(prefix + '/get_tags', {
+            filename : getFileName(),
+            human_filename : human_filename
+        }).done(function(data){
+            $form.addClass( data.success == true ? 'is-success' : 'is-error' );
+            data.data.forEach(function (file) {
+                var old = state.tags.files.filter(function (q) {
+                    return q.filename_human == file.filename_human;
+                })[0];
+                
+                old.filename = file.filename;
+                old.tags = file.tags;
+                old.errors = file.errors;
+            });
+        
+            // show tooltips after Vue rendered html
+            setTimeout(function () {
+                $('[data-toggle="tooltip"]').tooltip({html: true, container: "body"});
+            }, 250);
+            state.tags_filter_text = "";
+            processTemplate();
+        });
+    }
+
+    function delim_submit(){
+        if ($('#delim_value').val() === '') return;
+
+        $.post(prefix + '/set_delimiter', {
+            set_delimiter : $('#delim_value').val()
+        }).done(function(res){
+            $('#delim_value').val(res);
+            get_tags();
+        });
+    }
+
+    $('#delim_form').keyup(function(){
+        delim_submit();
+    })
+
     loadTemplate(getCurrentTemplate());
 });
-
