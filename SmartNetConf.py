@@ -21,8 +21,9 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, "upload")
 app.config['DATABASE'] = os.path.join(app.config['UPLOAD_FOLDER'], 'database.db')
 
-#prefix for production
-prefix = "/"
+#Here you can set the prefix if you use one (for example http://192.168.10.10/prod)
+#prefix = "/prod"
+prefix = ""
 
 output_delimiter = "#==========================================================#"
 outputs = {}
