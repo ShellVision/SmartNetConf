@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function
 
-from flask import Flask, render_template, request, Response, jsonify, g, send_file
+from flask import Flask, render_template, request, Response, jsonify, g, send_file, redirect
 from jinja2 import Environment, meta, exceptions
 from random import choice
 from inspect import getmembers, isfunction
@@ -17,13 +17,16 @@ from io import BytesIO
 import codecs
 
 app = Flask(__name__)
+
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, "upload")
 app.config['DATABASE'] = os.path.join(app.config['UPLOAD_FOLDER'], 'database.db')
 
+#prefix for production
+prefix = "/"
 
 output_delimiter = "#==========================================================#"
 outputs = {}
-
+delim = ","
 # helpers for sqlite
 def get_db():
     db = getattr(g, '_database', None)
@@ -77,7 +80,7 @@ def parseTag(tag):
 def home():
     global delim
     delim = ","
-    return render_template('index.html', delim=delim, flag=1)
+    return render_template('index.html', delim=delim, flag=1, prefix=prefix)
 
 # load templates list
 @app.route('/get_templates', methods=['GET'])
@@ -260,10 +263,27 @@ def set_delimiter():
     global delim
     if request.method == "POST":
         delim = request.form['set_delimiter']
-        return render_template('index.html', delim=delim, flag=0)
+        return delim
     # if request.method == "POST":
     #     data = request.form['test']
     #     return data
+
+# get tags from path
+@app.route('/get_tags', methods=['POST'])
+def get_tags():
+    filename = request.form["filename"]
+    human_filename = request.form["human_filename"]
+    
+    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    tags, errors = _getTags(path)
+    data = [{
+            "tags": tags,
+            "filename": filename,
+            "filename_human": human_filename,
+            "errors": errors
+        }]
+
+    return jsonify(data=data)
 
 
 import csv
@@ -271,6 +291,7 @@ import re
 
 # gets th first fow of csv and returns parsed tags list
 def _getTags(path):
+    global delim
     errors = []
     tags = []
     try:
@@ -282,8 +303,8 @@ def _getTags(path):
             
             tags = [parseTag(x) for x in row]
     except Exception as ex:
-        #errors.append("Failed to read tags" + str(ex) + str(tags) + "Delimiter is " + str(delim) "Path " + str(path) )
-        errors.append("Failed to read tags : " + str(ex) + str(tags) + " Delimiter is " + str(delim)   )
+        errors.append("Failed to read tags" + str(ex) + str(tags) + "Delimiter is " + str(delim) + "Path " + str(path) )
+        #errors.append("Failed to read tags : " + str(ex) + str(tags) + " Delimiter is " + str(delim)   )
     return (tags, errors)
 
 # uploads data file and returns it's id, name and tags list
@@ -295,7 +316,9 @@ def upload_file():
     data = []
     for file in request.files.getlist("file"):
         errors = []
-        filename = file.filename + "_" + guid() + ".csv" 
+
+        filename = guid() + ".csv" 
+
         path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         try:
             file.save(path)
