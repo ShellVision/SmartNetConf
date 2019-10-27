@@ -70,7 +70,7 @@ Then watch what is the error when you try to access the page
 
 
 
-### Configure the zappa_settings.json file
+### This section if only needed if you want to configure AWS LAMBDA using "zappa"
 
     pip install Flask PyYAML zappa
 
