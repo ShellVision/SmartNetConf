@@ -68,6 +68,39 @@ http://IPofYourServer
     tail -f /var/log/apache2/*
 Then watch what is the error when you try to access the page
 
+
+
+### Configure the zappa_settings.json file
+
+    pip install Flask PyYAML zappa
+
+
+    zappa init
+    #Or you can do it manualy 
+    vi zappa_settings.json and insert :
+      {
+         "prod": {
+             "app_function": "SmartNetConf.app",
+             "profile_name": "default",
+             "project_name": "smartnetconf",
+             "runtime": "python3.6",
+             "s3_bucket": "smartnetconf-prod"
+         },
+         "prod_us_west_2": {
+             "aws_region": "us-west-2",
+             "extends": "prod"
+         }
+      }
+      vi ~/.aws/credentials
+      [default]
+      aws_access_key_id=XXXXX
+      aws_secret_access_key=XXXXXX
+    
+### Upload to Lambda
+    zappa deploy prod
+
+
+
 ## Built With
 
 * [jinja2-live-parser](https://github.com/qn7o/jinja2-live-parser) - A lightweight live parser for Jinja2 based on Flask and Jquery.
