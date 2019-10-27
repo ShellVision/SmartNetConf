@@ -154,14 +154,9 @@
 						<div class="container-fluid">
 							<!-- Brand and toggle get grouped for better mobile display -->
 							<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                                <div  style="margin-top: 2%;" id="delim_form">
-                                    <div class="form-group">
-                                        <label style="float:left; margin-right:10px; margin-top: 7px;">Delimiter</label>
-                                        <input type="text" class="form-control" placeholder="',' is default" style="width: 30%;" name="set_delimiter" value="{{ delim }}" data-toggle="tooltip" data-placement="left" title="If you set the Delimiter manualy you NEED to upload the file AGAIN for the change to take effect" id="delim_value">
-                                    </div>
-                                </div>
 								<form class="navbar-form navbar-left" action="{{prefix}}/upload" method="post" enctype="multipart/form-data" id="file_form" style="margin-top: -2%; margin-left: -3%;">
 									<div class="form-group" style="margin-left: 3vh;">
+								                                    <br>
 										<label class="">Tags</label>
 										
 										<input v-model="tags_filter_text" type="text" class="form-control" placeholder="Search" style="width:100px;" id="search-field-tags" data-toggle="tooltip" data-placement="left" title="If you want to seach a specific TAG of the uploaded CSV file">

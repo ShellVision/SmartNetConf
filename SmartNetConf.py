@@ -18,16 +18,16 @@ import codecs
 
 app = Flask(__name__)
 
-app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, "upload")
-app.config['DATABASE'] = os.path.join(app.config['UPLOAD_FOLDER'], 'database.db')
+app.config['UPLOAD_FOLDER'] = "/tmp/"
+app.config['DATABASE'] = os.path.join(app.config['UPLOAD_FOLDER'], 'database2.db' + str(uuid.uuid4().urn[9:]) )
 
-#Here you can set the prefix if you use one (for example http://192.168.10.10/prod)
+#prefix for production - used in AWS LAMBDA "zappa update prod"
 #prefix = "/prod"
-prefix = ""
+# else normal prefix
+prefix = "/"
 
-output_delimiter = "#==========================================================#"
+output_delimiter = "!------------------ NEXT SESSION"
 outputs = {}
-delim = ","
 # helpers for sqlite
 def get_db():
     db = getattr(g, '_database', None)
@@ -79,9 +79,7 @@ def parseTag(tag):
 
 @app.route("/")
 def home():
-    global delim
-    delim = ","
-    return render_template('index.html', delim=delim, flag=1, prefix=prefix)
+    return render_template('index.html', flag=1, prefix=prefix)
 
 # load templates list
 @app.route('/get_templates', methods=['GET'])
@@ -193,11 +191,14 @@ def convert():
         with open(path, encoding='utf-8') as csvfile:
         #with open(path, encoding='ISO-8859-1') as csvfile:
             print("start converting")
-            reader = csv.reader(csvfile,delimiter=delim)
+
+            dialect = csv.Sniffer().sniff(csvfile.read(1024), delimiters=";,")
+            csvfile.seek(0)
+            reader = csv.reader(csvfile, dialect)
+            
+           # reader = csv.reader(csvfile,delimiter=delim)
             #You can change the delimiter here for the CSV File
             #reader = csv.reader(csvfile,delimiter=";")
-            print("delim: ", delim)
-            print("reader: ", reader)
             tags = None
             for i, row in enumerate(reader):
                 if tags == None:
@@ -257,18 +258,6 @@ def download_output():
     response.headers["Content-Disposition"] = "attachment; filename=" + request.args["file_name"]
     return response
 
-
-# set delimiter
-@app.route('/set_delimiter', methods=['POST', 'GET'])
-def set_delimiter():
-    global delim
-    if request.method == "POST":
-        delim = request.form['set_delimiter']
-        return delim
-    # if request.method == "POST":
-    #     data = request.form['test']
-    #     return data
-
 # get tags from path
 @app.route('/get_tags', methods=['POST'])
 def get_tags():
@@ -292,19 +281,22 @@ import re
 
 # gets th first fow of csv and returns parsed tags list
 def _getTags(path):
-    global delim
     errors = []
     tags = []
     try:
         with open(path, encoding='utf-8') as csvfile:
         #with open(path, encoding='ISO-8859-1') as csvfile:
-            reader = csv.reader(csvfile, delimiter=delim)
+            #reader = csv.reader(csvfile, delimiter=delim)
+            dialect = csv.Sniffer().sniff(csvfile.read(1024), delimiters=";,")
+            csvfile.seek(0)
+            reader = csv.reader(csvfile, dialect)
+
             row = reader.__next__()
             print(row)
             
             tags = [parseTag(x) for x in row]
     except Exception as ex:
-        errors.append("Failed to read tags" + str(ex) + str(tags) + "Delimiter is " + str(delim) + "Path " + str(path) )
+        errors.append("Failed to read tags" + str(ex) + str(tags) + "Delimiter is " + str(dialect) + "Path " + str(path) )
         #errors.append("Failed to read tags : " + str(ex) + str(tags) + " Delimiter is " + str(delim)   )
     return (tags, errors)
 
