@@ -1,0 +1,13 @@
+{
+    "prod": {
+        "app_function": "SmartNetConf.app",
+        "profile_name": "default",
+        "project_name": "smartnetconf",
+        "runtime": "python3.6",
+        "s3_bucket": "smartnetconf-prod"
+    },
+    "prod_us_west_2": {
+        "aws_region": "us-west-2",
+        "extends": "prod"
+    }
+}
