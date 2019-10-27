@@ -10,7 +10,8 @@ from SmartNetConf import app
 from SmartNetConf import app as application
 
 #Put logging code (and imports) here ... 
-#Initialize WSGI app object 
+#Initialize WSGI app object
+#app.debug = True
 application = app
 
 

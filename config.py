@@ -4,5 +4,5 @@ HOST = '0.0.0.0'
 PORT = 5000
 
 LOGGING_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-LOGGING_LOCATION = 'jinja2-live-parser.log'
+LOGGING_LOCATION = 'smartnetconf_flask.log'
 LOGGING_LEVEL = 'DEBUG'

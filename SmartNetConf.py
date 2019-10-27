@@ -18,16 +18,37 @@ import codecs
 
 app = Flask(__name__)
 
-app.config['UPLOAD_FOLDER'] = "/tmp/"
-app.config['DATABASE'] = os.path.join(app.config['UPLOAD_FOLDER'], 'database2.db' + str(uuid.uuid4().urn[9:]) )
+app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, "tmp")
+app.config['DATABASE'] = os.path.join(app.config['UPLOAD_FOLDER'], 'database.db')
+prefix = ""
+
+#-----------------------------
+# FOR AWS LAMBDA UNCOMMENT BELOW AND COMMENT ABOVE
+#-----------------------------
+
+#app.config['UPLOAD_FOLDER'] = "/tmp/"
+#app.config['DATABASE'] = os.path.join(app.config['UPLOAD_FOLDER'], 'database.db' + str(uuid.uuid4().urn[9:]) )
 
 #prefix for production - used in AWS LAMBDA "zappa update prod"
 #prefix = "/prod"
-# else normal prefix
-prefix = "/"
+
+if not os.path.exists(os.path.join(app.root_path, "tmp")):
+        os.makedirs(os.path.join(app.root_path, "tmp"))
 
 output_delimiter = "!------------------ NEXT SESSION"
 outputs = {}
+
+
+# check if db exists, create new one if not at start
+if(not os.path.isfile(app.config['DATABASE'])):
+    query_text = "CREATE TABLE templates(id TEXT PRIMARY KEY, name TEXT, content TEXT);"
+    db = sqlite3.connect(app.config['DATABASE'])
+    db.cursor().executescript(query_text)
+    db.commit()
+    db.close()
+ 
+
+
 # helpers for sqlite
 def get_db():
     db = getattr(g, '_database', None)
@@ -41,6 +62,10 @@ def get_db():
 
     return db
 
+
+
+
+
 @app.teardown_appcontext
 def close_connection(exception):
     db = getattr(g, '_database', None)
@@ -52,15 +77,7 @@ def query_db(query, args=(), one=False):
     rv = cur.fetchall()
     cur.close()
     return (rv[0] if rv else None) if one else rv
-
-# check if db exists, create new one if not at start
-if(not os.path.isfile(app.config['DATABASE'])):
-    query_text = "CREATE TABLE templates(id TEXT PRIMARY KEY, name TEXT, content TEXT);"
-    db = sqlite3.connect(app.config['DATABASE'])
-    db.cursor().executescript(query_text)
-    db.commit()
-    db.close()
-    
+   
 
 def guid():
     return uuid.uuid4().urn[9:]
@@ -327,6 +344,9 @@ def upload_file():
 
     return jsonify(data=data)
 
+#if ( app.debug ):
+#        from werkzeug.debug import DebuggedApplication
+#        app.wsgi_app = DebuggedApplication( app.wsgi_app, True )
 
 if __name__ == "__main__":
     app.run(
